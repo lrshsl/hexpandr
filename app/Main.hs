@@ -10,6 +10,11 @@ type ParseResult = Result (String, String) ParseError
 
 type Parser = String -> ParseResult
 
+
+okParser :: Parser
+okParser = (\i -> Ok ([], i))
+
+
 anyChar :: Parser
 anyChar = \input -> case input of
 
@@ -26,6 +31,17 @@ eof = \input -> case input of
   (c:_) -> Err $ ParseError { expected = "<EOI>", found = [c] }
 
 
+oneOf :: [Parser] -> Parser
+oneOf parsers = foldl orElse  (head parsers) (tail parsers)
+
+
+digit :: Parser
+digit = oneOf (map exactly "0123456789")
+
+
+optional :: Parser -> Parser
+optional p = p `orElse` okParser
+
 class Exactly x where
     exactly :: x -> Parser
 
@@ -34,15 +50,15 @@ instance Exactly Char where
         (c:rst)
             | c == ch   -> Ok ([ch], rst)
             | otherwise -> Err $ ParseError { expected = [ch], found = [c] }
+        [] -> Err $ ParseError { expected = [ch], found = "<EOF>" }
 
 
 instance Exactly String where
-    exactly target = \input ->
-        case splitAt (length target) input of
+    exactly s = \input ->
+        case splitAt (length s) input of
             (prefix, rst)
-                | prefix == target -> Ok (prefix, rst)  -- Matched the string
-                | otherwise        -> Err $ ParseError { expected = target, found = prefix }
-            (_, _) -> Err $ ParseError { expected = target, found = "<EOI>" }  -- Not enough input
+                | prefix == s -> Ok (prefix, rst)
+                | otherwise   -> Err $ ParseError { expected = s, found = prefix }
 
 
 andThen :: Parser -> Parser -> Parser
@@ -71,6 +87,13 @@ many p = \input ->
         Err _ -> Ok ([], input)
 
 
+sepByStrict :: Parser -> Parser -> Parser
+e `sepByStrict` s = e `andThen` ((s `andThen` (sepBy e s)) `orElse` okParser)
+
+sepBy :: Parser -> Parser -> Parser
+e `sepBy` s = e `andThen` ((s `andThen` (optional (sepBy e s))) `orElse` okParser)
+
+
 main :: IO ()
 main = do
     let result1 = eof ""
@@ -93,6 +116,17 @@ main = do
 
     let result7 = (exactly "Hel") "Hello"
     print result7
+
+    let result8 = (digit `sepBy` (exactly ',')) "1,2,3,4"
+    print result8
+
+    let result9 = (digit `sepBy` (exactly ',')) "1,2,,3,4," -- Parses just fine with any number of commas, including trailing ones
+    let result10 = (digit `sepByStrict` (exactly ',')) "1,2,,3,4," -- Does not parse additional commas and the last one
+    print result9
+    print result10
+
+    let result11 = (digit `sepBy` (exactly ',')) ",1,2,3,4" -- Errors
+    print result11
 
 
 -- vim: et ts=4 sts=4 sw=4
