@@ -6,36 +6,66 @@ data Result ok err = Ok ok | Err err
 data ParseError = ParseError { expected :: String, found :: String }
     deriving (Eq, Show)
 
-type ParseResult = Result String ParseError
+type ParseResult = Result (String, String) ParseError
 
-newtype Parser a = Parser {
-  runParser :: String -> (String, ParseResult)
-}
+type Parser = String -> ParseResult
 
+chr :: Parser
+chr = \input -> case input of
 
-any :: Parser Char
-any = Parser $ \input -> case input of
+  (x:xs) -> (Ok ([x], xs))
 
-  (x:xs) -> (xs, Ok [x])
-
-  []     -> ("", Err $ ParseError { expected = "any character", found = "eof" })
+  []     -> Err $ ParseError { expected = "any character", found = "<EOI>" }
 
 
-eof :: Parser ()
-eof = Parser $ \input -> case input of
+eof :: Parser
+eof = \input -> case input of
 
-  []    -> ("", Ok [])
+  []    -> Ok ([], [])
 
-  (c:_) -> (input, Err $ ParseError { expected = "eof", found = [c] })
+  (c:_) -> Err $ ParseError { expected = "<EOI>", found = [c] }
+
+
+andThen :: Parser -> Parser -> Parser
+a `andThen` b = \input ->
+    case a input of
+        Ok (s, rst) -> case b rst of
+            Ok (s_b, rst_b) -> Ok (s ++ s_b, rst_b)
+        Err err -> Err err
+
+
+orElse :: Parser -> Parser -> Parser
+a `orElse` b = \input ->
+    case a input of
+        Err err -> b input
+        ok -> ok
+
+
+many :: Parser -> Parser
+many p = \input ->
+    case p input of
+        Ok (s, rst) -> 
+            case many p rst of
+                Ok (s_b, rst_b) -> Ok (s ++ s_b, rst_b)
+        Err err -> Ok ([], input)
 
 
 main :: IO ()
 main = do
-    let result1 = runParser eof ""
+    let result1 = eof ""
     print result1  -- Output: Ok []
     
-    let result2 = runParser Main.any "Hello"
-    print result2
+    let result = Main.chr "Hello"
+    print result
+
+    let result = eof "Hello"
+    print result
+
+    let result = (chr `andThen` chr) "Hello"
+    print result
+
+    let result = ((many chr) `andThen` eof) "Hello"
+    print result
 
 
 -- vim: et ts=4 sts=4 sw=4
