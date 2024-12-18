@@ -23,19 +23,19 @@ type Parser = String -> ParseResult
 ------------------
 
 okParser :: Parser
-okParser = (\i -> Ok ([], i))
+okParser i = Ok ([], i)
 
 
 anyChar :: Parser
-anyChar = \i -> case i of
+anyChar i = case i of
 
-  (x:xs) -> (Ok ([x], xs))
+  (x:xs) -> Ok ([x], xs)
 
   []     -> Err $ ParseError { expected = "any character", found = "<EOI>" }
 
 
 eof :: Parser
-eof = \i -> case i of
+eof i = case i of
 
   []    -> Ok ([], [])
 
@@ -43,7 +43,7 @@ eof = \i -> case i of
 
 
 chr :: Char -> Parser
-chr c = \i -> case i of
+chr c i = case i of
     (x:rst)
         | x == c    -> Ok ([x], rst)
         | otherwise -> Err $ ParseError { expected = [c], found = [x] }
@@ -51,7 +51,7 @@ chr c = \i -> case i of
 
 
 exactly :: String -> Parser
-exactly s = \i ->
+exactly s i =
     case splitAt (length s) i of
         (prefix, rst)
             | prefix == s -> Ok (prefix, rst)
@@ -76,7 +76,7 @@ defaultIdent = (alpha `orElse` chr '_') `andThen` many (alphanum `orElse` chr '_
 ------------------------
 
 oneOf :: [Parser] -> Parser
-oneOf parsers = foldl orElse (head parsers) (tail parsers)
+oneOf = foldl1 orElse
 
 
 optional :: Parser -> Parser
@@ -100,7 +100,7 @@ a `orElse` b = \i ->
 
 
 many :: Parser -> Parser
-many p = \i ->
+many p i =
     case p i of
         Ok (s, rst) ->
             case many p rst of
@@ -112,10 +112,10 @@ many1 :: Parser -> Parser
 many1 p = p `andThen` many p
 
 sepByStrict :: Parser -> Parser -> Parser
-e `sepByStrict` s = e `andThen` ((s `andThen` (sepBy e s)) `orElse` okParser)
+e `sepByStrict` s = e `andThen` ((s `andThen` sepBy e s) `orElse` okParser)
 
 sepBy :: Parser -> Parser -> Parser
-e `sepBy` s = e `andThen` ((s `andThen` (optional (sepBy e s))) `orElse` okParser)
+e `sepBy` s = e `andThen` ((s `andThen` optional (sepBy e s)) `orElse` okParser)
 
 
 main :: IO ()
