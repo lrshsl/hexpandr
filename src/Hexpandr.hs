@@ -60,9 +60,14 @@ exactly s = \i ->
 digit :: Parser
 digit = force oneOf (map chr "0123456789")
 
-
 alpha :: Parser
 alpha = force oneOf (map chr (['a' .. 'z'] ++ ['A' .. 'Z']))
+
+alphanum :: Parser
+alphanum = alpha `orElse` digit
+
+defaultIdent :: Parser
+defaultIdent = (alpha `orElse` chr '_') `andThen` optional (alphanum `orElse` chr '_')
 
 
 ------------------------

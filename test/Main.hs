@@ -47,3 +47,6 @@ main = do
     let result14 = (many identch `sepBy` chr ',') "a,2a,Z,nice_3"
     print result14
 
+    let result15 = (defaultIdent `sepBy` chr ',') "a,Z,nice_3,a2"
+    print result15
+
