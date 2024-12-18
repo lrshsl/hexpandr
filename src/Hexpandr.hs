@@ -10,10 +10,10 @@ import Control.DeepSeq (force)
 data Result ok err = Ok ok | Err err
     deriving (Eq, Ord, Read, Show)
 
-data ParseError = ParseError { expected :: String, found :: String }
-    deriving (Eq, Show)
 
-type ParseResult = Result (String, String) ParseError
+type ParseResult = Result
+    (String, String) -- Ok  (parsed, remaining)
+    (String, String) -- Err (expected,   found)
 
 type Parser = String -> ParseResult
 
@@ -31,7 +31,7 @@ anyChar i = case i of
 
   (x:xs) -> Ok ([x], xs)
 
-  []     -> Err $ ParseError { expected = "any character", found = "<EOI>" }
+  []     -> Err ("any character", "<EOI>")
 
 
 eof :: Parser
@@ -39,15 +39,15 @@ eof i = case i of
 
   []    -> Ok ([], [])
 
-  (c:_) -> Err $ ParseError { expected = "<EOI>", found = [c] }
+  (c:_) -> Err ("<EOI>", [c])
 
 
 chr :: Char -> Parser
 chr c i = case i of
     (x:rst)
         | x == c    -> Ok ([x], rst)
-        | otherwise -> Err $ ParseError { expected = [c], found = [x] }
-    [] -> Err $ ParseError { expected = [c], found = "<EOF>" }
+        | otherwise -> Err ([c], [x])
+    [] -> Err ([c], "<EOF>")
 
 
 exactly :: String -> Parser
@@ -55,7 +55,7 @@ exactly s i =
     case splitAt (length s) i of
         (prefix, rst)
             | prefix == s -> Ok (prefix, rst)
-            | otherwise   -> Err $ ParseError { expected = s, found = prefix }
+            | otherwise   -> Err (s, prefix)
 
 
 digit :: Parser
@@ -95,7 +95,9 @@ a `andThen` b = \i ->
 orElse :: Parser -> Parser -> Parser
 a `orElse` b = \i ->
     case a i of
-        Err _ -> b i
+        Err (e, _) -> case b i of
+            Err (e_b, f) -> Err (e ++ e_b, f)
+            ok -> ok
         ok -> ok
 
 

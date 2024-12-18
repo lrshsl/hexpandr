@@ -10,6 +10,8 @@ main = do
     --- Single characters
     ---------------------------------------
 
+    putStrLn "\n-- Single characters --"
+
     let parser1 = eof ""
     print $ parser1 == Ok ("", "")
 
@@ -17,7 +19,7 @@ main = do
     print $ parser2 "Hello" == Ok ("H", "ello")
 
     let parser3 = eof
-    print $ parser3 "Hello" == Err (ParseError { expected = "<EOI>", found = "H" })
+    print $ parser3 "Hello" == Err ("<EOI>", "H" )
 
     let parser4 = anyChar `andThen` anyChar
     print $ parser4 "Hello" == Ok ("He", "llo")
@@ -26,7 +28,7 @@ main = do
     print $ parser5 "Hello" == Ok ("Hello", "")
 
     let parser6 = chr '4'
-    print $ parser6 "Hello" == Err (ParseError { expected = "4", found = "H" })
+    print $ parser6 "Hello" == Err ("4", "H")
 
     let parser7 = exactly "Hel"
     print $ parser7 "Hello" == Ok ("Hel", "lo")
@@ -36,7 +38,7 @@ main = do
     --- sepBy and sepByStrict
     ---------------------------------------
 
-    print "-- SepBy parsers --"
+    putStrLn "\n-- SepBy parsers --"
 
     let sepByParser = digit `sepBy` chr ','
     let sepByStrictParser = digit `sepByStrict` chr ','
@@ -55,10 +57,10 @@ main = do
     --- predefined alphanumerical+ sets
     ---------------------------------------
 
-    print "-- Alphanumerical --"
+    putStrLn "\n-- Alphanumerical --"
 
     let parser11 = digit `sepBy` chr ','
-    print $ parser11 ",1,2,3,4" -- Errors
+    print $ parser11 ",1,2,3,4" == Ok (",1,2,3,4", "")
 
     let identch = oneOf [digit, alpha, chr '_']
     let parser12 = identch `sepBy` chr ','
@@ -78,13 +80,15 @@ main = do
     --- Further examples
     ---------------------------------------
 
+    putStrLn "\n-- Further examples --"
+
     let identP = alpha `andThen` many (oneOf [alpha, digit, chr '_'])
     print $ identP "some_ident42" == Ok ("some_ident42", "")
 
     let floatP = many1 digit `andThen` optional (chr '.' `andThen` many digit)
     print $ floatP "32.01" == Ok ("32.01", "")
     print $ floatP "1" == Ok ("1", "")
-    print $ floatP "a" -- Err
+    print $ floatP "a" == Err (['0' .. '9'], "a")
 
     let intP = many1 digit
 
@@ -93,5 +97,5 @@ main = do
 
     print $ arrayP "[a 3.5 b 90]" == Ok ("[a 3.5 b 90]", "")
 
-    print "Tests Done"
+    putStrLn "\nTests Done\n"
 
