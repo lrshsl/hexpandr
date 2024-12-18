@@ -36,21 +36,26 @@ main = do
     --- sepBy and sepByStrict
     ---------------------------------------
 
-    let sepByParser = digit `sepBy` chr ','
-    print $ sepByParser "1,2,3,4" == Ok ("1,2,3,4", "")
+    print "-- SepBy parsers --"
 
+    let sepByParser = digit `sepBy` chr ','
     let sepByStrictParser = digit `sepByStrict` chr ','
 
+    print $ sepByParser "1,2,3,4" == Ok ("1,2,3,4", "")
+    print $ sepByStrictParser "1,2,3,4" == Ok ("1,2,3,4", "")
+
     -- sepBy parses just fine with any number of commas, including trailing ones
-    print $ sepByParser "1,2,,3,4," -- == Ok ("1,2,,3,4,", "")
+    print $ sepByParser "1,2,,3,4," == Ok ("1,2,,3,4,", "")
 
     -- Does not parse additional commas and the last one
-    print $ sepByStrictParser "1,2,,3,4,"
+    print $ sepByStrictParser "1,2,,3,4," == Ok ("1,2", ",,3,4,")
 
 
     ---------------------------------------
     --- predefined alphanumerical+ sets
     ---------------------------------------
+
+    print "-- Alphanumerical --"
 
     let parser11 = digit `sepBy` chr ','
     print $ parser11 ",1,2,3,4" -- Errors

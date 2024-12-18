@@ -108,14 +108,23 @@ many p i =
                 Err _ -> Ok (s, i)
         Err _ -> Ok ([], i)
 
+
 many1 :: Parser -> Parser
 many1 p = p `andThen` many p
 
-sepByStrict :: Parser -> Parser -> Parser
-e `sepByStrict` s = e `andThen` ((s `andThen` sepBy e s) `orElse` okParser)
 
 sepBy :: Parser -> Parser -> Parser
-e `sepBy` s = e `andThen` ((s `andThen` optional (sepBy e s)) `orElse` okParser)
+e `sepBy` s = many ((e `andThen` s) `orElse` s) `andThen` optional e
+
+sepBy1 :: Parser -> Parser -> Parser
+e `sepBy1` s = e `andThen` (e `sepBy` s)
+
+
+sepByStrict :: Parser -> Parser -> Parser
+e `sepByStrict` s = optional (e `andThen` many (s `andThen` e))
+
+sepByStrict1 :: Parser -> Parser -> Parser
+e `sepByStrict1` s = e `andThen` (e `sepByStrict` s)
 
 
 main :: IO ()
