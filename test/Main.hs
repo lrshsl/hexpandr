@@ -5,48 +5,88 @@ import Hexpandr
 
 main :: IO ()
 main = do
-    let result1 = eof ""
-    print result1  -- Output: Ok []
 
-    let result2 = anyChar "Hello"
-    print result2
+    ---------------------------------------
+    --- Single characters
+    ---------------------------------------
 
-    let result3 = eof "Hello"
-    print result3
+    let parser1 = eof ""
+    print $ parser1 == Ok ("", "")
 
-    let result4 = (anyChar `andThen` anyChar) "Hello"
-    print result4
+    let parser2 = anyChar
+    print $ parser2 "Hello" == Ok ("H", "ello")
 
-    let result5 = (many anyChar `andThen` eof) "Hello"
-    print result5
+    let parser3 = eof
+    print $ parser3 "Hello" == Err (ParseError { expected = "<EOI>", found = "H" })
 
-    let result6 = chr '4' "Hello"
-    print result6
+    let parser4 = anyChar `andThen` anyChar
+    print $ parser4 "Hello" == Ok ("He", "llo")
 
-    let result7 = exactly "Hel" "Hello"
-    print result7
+    let parser5 = many anyChar `andThen` eof
+    print $ parser5 "Hello" == Ok ("Hello", "")
 
-    let result8 = (digit `sepBy` chr ',') "1,2,3,4"
-    print result8
+    let parser6 = chr '4'
+    print $ parser6 "Hello" == Err (ParseError { expected = "4", found = "H" })
 
-    let result9 = (digit `sepBy` chr ',') "1,2,,3,4," -- Parses just fine with any number of commas, including trailing ones
-    let result10 = (digit `sepByStrict` chr ',') "1,2,,3,4," -- Does not parse additional commas and the last one
-    print result9
-    print result10
+    let parser7 = exactly "Hel"
+    print $ parser7 "Hello" == Ok ("Hel", "lo")
 
-    let result11 = (digit `sepBy` chr ',') ",1,2,3,4" -- Errors
-    print result11
+
+    ---------------------------------------
+    --- sepBy and sepByStrict
+    ---------------------------------------
+
+    let sepByParser = digit `sepBy` chr ','
+    print $ sepByParser "1,2,3,4" == Ok ("1,2,3,4", "")
+
+    let sepByStrictParser = digit `sepByStrict` chr ','
+
+    -- sepBy parses just fine with any number of commas, including trailing ones
+    print $ sepByParser "1,2,,3,4," -- == Ok ("1,2,,3,4,", "")
+
+    -- Does not parse additional commas and the last one
+    print $ sepByStrictParser "1,2,,3,4,"
+
+
+    ---------------------------------------
+    --- predefined alphanumerical+ sets
+    ---------------------------------------
+
+    let parser11 = digit `sepBy` chr ','
+    print $ parser11 ",1,2,3,4" -- Errors
 
     let identch = oneOf [digit, alpha, chr '_']
-    let result12 = (identch `sepBy` chr ',') "a,2,Z,4"
-    print result12
+    let parser12 = identch `sepBy` chr ','
+    print $ parser12 "a,2,Z,4" == Ok ("a,2,Z,4", "")
 
-    let result13 = (identch `sepBy` chr ',') "a,2a,Z,4"
-    print result13
+    let parser13 = identch `sepBy` chr ','
+    print $ parser13 "a,2a,Z,4" == Ok ("a,2", "a,Z,4")
 
-    let result14 = (many identch `sepBy` chr ',') "a,2a,Z,nice_3"
-    print result14
+    let parser14 = many identch `sepBy` chr ','
+    print $ parser14 "a,2a,Z,nice_3" == Ok ("a,2a,Z,nice_3", "")
 
-    let result15 = (defaultIdent `sepBy` chr ',') "a,Z,nice_3,a2"
-    print result15
+    let parser15 = defaultIdent `sepBy` chr ','
+    print $ parser15 "a,Z,nice_3,a2" == Ok ("a,Z,nice_3,a2", "")
+
+
+    ---------------------------------------
+    --- Further examples
+    ---------------------------------------
+
+    let identP = alpha `andThen` many (oneOf [alpha, digit, chr '_'])
+    print $ identP "some_ident42" == Ok ("some_ident42", "")
+
+    let floatP = many1 digit `andThen` optional (chr '.' `andThen` many digit)
+    print $ floatP "32.01" == Ok ("32.01", "")
+    print $ floatP "1" == Ok ("1", "")
+    print $ floatP "a" -- Err
+
+    let intP = many1 digit
+
+    let arrayElement = oneOf [identP, floatP, intP]
+    let arrayP = chr '[' `andThen` (arrayElement `sepBy` chr ' ') `andThen` chr ']'
+
+    print $ arrayP "[a 3.5 b 90]" == Ok ("[a 3.5 b 90]", "")
+
+    print "Tests Done"
 

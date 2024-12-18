@@ -108,6 +108,8 @@ many p = \i ->
                 Err _ -> Ok (s, i)
         Err _ -> Ok ([], i)
 
+many1 :: Parser -> Parser
+many1 p = p `andThen` many p
 
 sepByStrict :: Parser -> Parser -> Parser
 e `sepByStrict` s = e `andThen` ((s `andThen` (sepBy e s)) `orElse` okParser)
