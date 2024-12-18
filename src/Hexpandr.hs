@@ -2,6 +2,7 @@ module Hexpandr where
 
 import Control.DeepSeq (force)
 
+
 ------------------
 -- Parser types --
 ------------------
@@ -44,7 +45,7 @@ eof = \i -> case i of
 chr :: Char -> Parser
 chr c = \i -> case i of
     (x:rst)
-        | x == c   -> Ok ([x], rst)
+        | x == c    -> Ok ([x], rst)
         | otherwise -> Err $ ParseError { expected = [c], found = [x] }
     [] -> Err $ ParseError { expected = [c], found = "<EOF>" }
 
@@ -67,7 +68,7 @@ alphanum :: Parser
 alphanum = alpha `orElse` digit
 
 defaultIdent :: Parser
-defaultIdent = (alpha `orElse` chr '_') `andThen` optional (alphanum `orElse` chr '_')
+defaultIdent = (alpha `orElse` chr '_') `andThen` many (alphanum `orElse` chr '_')
 
 
 ------------------------
@@ -101,7 +102,7 @@ a `orElse` b = \i ->
 many :: Parser -> Parser
 many p = \i ->
     case p i of
-        Ok (s, rst) -> 
+        Ok (s, rst) ->
             case many p rst of
                 Ok (s_b, rst_b) -> Ok (s ++ s_b, rst_b)
                 Err _ -> Ok (s, i)
