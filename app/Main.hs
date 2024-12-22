@@ -1,5 +1,7 @@
 module Main where
 
+import Hexpandr
+
 main :: IO ()
 main = do
-    putStrLn "Done"
+  print $ parse (ident `sepBy1` whitespace) "hey there"

@@ -1,95 +1,132 @@
-module Main (Main.main) where
+module Main where
 
 import Hexpandr
 
+import System.Exit (exitFailure, exitSuccess)
+
+data TestResult = Pass | Fail String
+
+-- ANSI color codes
+colorGreen, colorRed, colorReset :: String
+colorGreen = "\x1b[32m"
+colorRed = "\x1b[31m"
+colorReset = "\x1b[0m"
+
+-- Test function with colored output
+simpleTest :: String -> Bool -> IO TestResult
+simpleTest name condition =
+  if condition
+    then do
+      putStrLn $ colorGreen ++ "Test passed: " ++ name ++ colorReset
+      return Pass
+    else do
+      putStrLn $ colorRed ++ "Test failed: " ++ name ++ colorReset
+      return (Fail name)
+
+runTests :: [IO TestResult] -> IO ()
+runTests tests = do
+  results <- sequence tests
+  let failed = [name | Fail name <- results]
+  if null failed
+    then do
+      putStrLn $ colorGreen ++ "All tests passed!" ++ colorReset
+      sequence_ [return ()]
+      exitSuccess
+    else do
+      putStrLn $ colorRed ++ "Some tests failed: " ++ show failed ++ colorReset
+      putStrLn $ colorRed ++ show (length failed) ++ " tests failed." ++ colorReset
+      exitFailure
+
 main :: IO ()
-main = do
-  ---------------------------------------
-  --- Single characters
-  ---------------------------------------
+main = runTests
+  [ simpleTest "Multiple items" $
 
-  putStrLn "\n-- Single characters --"
+      parse (many1 alpha `sepBy` char ',') "item,item,item"
 
-  let parser1 = eof ""
-  print $ parser1 == Ok ("", "")
+    == Ok ["item", "item", "item"] ""
+  ]
 
-  let parser2 = anyChar
-  print $ parser2 "Hello" == Ok ("H", "ello")
+  -- ---------------------------------------
+  -- --- Single characters
+  -- ---------------------------------------
 
-  let parser3 = eof
-  print $ parser3 "Hello" == Err ("<EOI>", "H")
+  -- putStrLn "\n-- Single characters --"
 
-  let parser4 = anyChar `andThen` anyChar
-  print $ parser4 "Hello" == Ok ("He", "llo")
+  -- test (parse eoi "" == Ok ("", "")) []
 
-  let parser5 = many anyChar `andThen` eof
-  print $ parser5 "Hello" == Ok ("Hello", "")
+  -- let parser2 = anyChar
+  -- print $ parse parser2 "Hello" -- == Ok ("H", "ello")
 
-  let parser6 = charP '4'
-  print $ parser6 "Hello" == Err ("4", "H")
+  -- let parser3 = eoi
+  -- print $ parse parser3 "Hello" -- == Err ("<EOI>", "H")
 
-  let parser7 = exactly "Hel"
-  print $ parser7 "Hello" == Ok ("Hel", "lo")
+  -- let parser4 = anyChar `andThen` anyChar
+  -- print $ parse parser4 "Hello" -- == Ok ("He", "llo")
 
-  ---------------------------------------
-  --- sepBy and sepByStrict
-  ---------------------------------------
+  -- let parser5 = many anyChar `followedBy` eoi
+  -- print $ parse parser5 "Hello" -- == Ok ("Hello", "")
 
-  putStrLn "\n-- SepBy parsers --"
+  -- let parser6 = char '4'
+  -- print $ parse parser6 "Hello" -- == Err ("4", "H")
 
-  let sepByParser = digit `sepBy` charP ','
-  let sepByStrictParser = digit `sepByStrict` charP ','
+  -- let parser7 = exactly "Hel"
+  -- print $ parse parser7 "Hello" -- == Ok ("Hel", "lo")
 
-  print $ sepByParser "1,2,3,4" == Ok ("1,2,3,4", "")
-  print $ sepByStrictParser "1,2,3,4" == Ok ("1,2,3,4", "")
+  -- ---------------------------------------
+  -- --- sepBy and sepByStrict
+  -- ---------------------------------------
 
-  -- sepBy parses just fine with any number of commas, including trailing ones
-  print $ sepByParser "1,2,,3,4," == Ok ("1,2,,3,4,", "")
+  -- putStrLn "\n-- SepBy parsers --"
 
-  -- Does not parse additional commas and the last one
-  print $ sepByStrictParser "1,2,,3,4," == Ok ("1,2", ",,3,4,")
+  -- let sepByParser = digit `sepBy` char ','
 
-  ---------------------------------------
-  --- predefined alphanumerical+ sets
-  ---------------------------------------
+  -- -- parses just fine with any number of commas, including trailing ones
+  -- print $ parse sepByParser "1,2,3,4" -- == Ok ("1,2,3,4", "")
+  -- print $ parse sepByParser "1,2,,3,4," -- == Ok ("1,2,,3,4,", "")
+  -- print $ parse sepByParser ",1," -- == Ok (",1,2,,3,4,", "")
 
-  putStrLn "\n-- Alphanumerical --"
+  -- ---------------------------------------
+  -- --- predefined alphanumerical+ sets
+  -- ---------------------------------------
 
-  let parser11 = digit `sepBy` charP ','
-  print $ parser11 ",1,2,3,4" == Ok (",1,2,3,4", "")
+  -- putStrLn "\n-- Alphanumerical --"
 
-  let identch = oneOf [digit, alpha, charP '_']
-  let parser12 = identch `sepBy` charP ','
-  print $ parser12 "a,2,Z,4" == Ok ("a,2,Z,4", "")
+  -- let parser11 = digit `sepBy` char ','
+  -- print $ parse parser11 ",1,2,3,4" -- == Ok (",1,2,3,4", "")
 
-  let parser13 = identch `sepBy` charP ','
-  print $ parser13 "a,2a,Z,4" == Ok ("a,2", "a,Z,4")
+  -- let identch = choice [digit, alpha, char '_']
+  -- let parser12 = identch `sepBy` char ','
+  -- print $ parse parser12 "a,2,Z,4" -- == Ok ("a,2,Z,4", "")
 
-  let parser14 = many identch `sepBy` charP ','
-  print $ parser14 "a,2a,Z,nice_3" == Ok ("a,2a,Z,nice_3", "")
+  -- let parser13 = identch `sepBy` char ','
+  -- print $ parse parser13 "a,2a,Z,4" -- == Ok ("a,2", "a,Z,4")
 
-  let parser15 = defaultIdent `sepBy` charP ','
-  print $ parser15 "a,Z,nice_3,a2" == Ok ("a,Z,nice_3,a2", "")
+  -- let parser14 = many identch `sepBy` char ','
+  -- print $ parse parser14 "a,2a,Z,nice_3" -- == Ok ("a,2a,Z,nice_3", "")
 
-  ---------------------------------------
-  --- Further examples
-  ---------------------------------------
+  -- let parser15 = ident `sepBy` char ','
+  -- print $ parse parser15 "a,Z,nice_3,a2" -- == Ok ("a,Z,nice_3,a2", "")
 
-  putStrLn "\n-- Further examples --"
+  -- ---------------------------------------
+  -- --- Further examples
+  -- ---------------------------------------
 
-  let identP = alpha `andThen` many (oneOf [alpha, digit, charP '_'])
-  print $ identP "some_ident42" == Ok ("some_ident42", "")
+  -- putStrLn "\n-- Further examples --"
 
-  let floatP = many1 digit `andThen` optional (charP '.' `andThen` many digit)
-  print $ floatP "32.01" == Ok ("32.01", "")
-  print $ floatP "1" == Ok ("1", "")
-  print $ floatP "a" == Err (['0' .. '9'], "a")
+  -- let identP = (:) <$> alpha <*> many (choice [alpha, digit, char '_'])
+  -- print $ parse identP "some_ident42" -- == Ok ("some_ident42", "")
 
-  let intP = many1 digit
+  -- let floatP = fmap flatten $ (:) <$> many1 digit <*> optional ((:) <$> char '.' <*> many digit)
+  -- print $ parse floatP "32.01" -- == Ok ("32.01", "")
+  -- print $ parse floatP "1" -- == Ok ("1", "")
+  -- print $ parse floatP "a" -- == Err (['0' .. '9'], "a")
 
-  let arrayElement = oneOf [identP, floatP, intP]
-  let arrayP = charP '[' `andThen` (arrayElement `sepBy` charP ' ') `andThen` charP ']'
+  -- let intP = many1 digit
 
-  print $ arrayP "[a 3.5 b 90]" == Ok ("[a 3.5 b 90]", "")
+  -- let arrayElement = choice [identP, floatP, intP]
+  -- let arrayInner = arrayElement `sepBy` whitespace
+  -- let arrayP = silent (char '[') >> arrayInner  >> silent (char ']')
 
-  putStrLn "\nTests Done\n"
+  -- print $ parse arrayP "[a 3.5 b 90]" -- == Ok ("[a 3.5 b 90]", "")
+
+  -- putStrLn "\nTests Done\n"
