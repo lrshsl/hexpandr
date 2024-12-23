@@ -59,6 +59,7 @@ library
         Hexpandr.Parser,
         Hexpandr.PrimitiveParsers,
         Hexpandr.Tokens,
+        Hexpandr.Ast,
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -84,19 +85,16 @@ executable hexpandr
         base ^>=4.17.2.1,
         hexpandr
 
-test-suite hexpandr-test
+executable hexpandr-test
     import:           warnings
     default-language: GHC2021
 
     hs-source-dirs:   test
-    main-is:          Main.hs
+    main-is:          Test.hs
     -- other-modules:
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-
-    -- The interface type and version of the test suite.
-    type:             exitcode-stdio-1.0
 
     build-depends:
         base ^>=4.17.2.1,

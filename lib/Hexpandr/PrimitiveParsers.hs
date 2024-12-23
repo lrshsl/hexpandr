@@ -4,6 +4,7 @@ module Hexpandr.PrimitiveParsers
   ( eoi,
     char,
     anyChar,
+    anyCharBut,
     exactly,
     andThen,
     followedBy,
@@ -22,7 +23,6 @@ where
 import Hexpandr.Parser
 import qualified Control.Monad
 
--- Parser that consumes a single character
 eoi :: Parser ()
 eoi = Parser $ \case
   (x : _) -> Err "end of input" [x]
@@ -35,24 +35,27 @@ char c = Parser $ \case
     | otherwise -> Err [c] [x]
   [] -> Err [c] "end of input"
 
--- Parser that consumes any character
 anyChar :: Parser Char
 anyChar = Parser $ \case
   (x : xs) -> Ok x xs
   [] -> Err "any character" "end of input"
 
--- Parser that matches a specific string
+anyCharBut :: [Char] -> Parser Char
+anyCharBut excluded = Parser $ \case
+  (x : xs)
+    | x `notElem` excluded -> Ok x xs
+    | otherwise -> Err ("any character except " ++ show excluded) [x]
+  [] -> Err ("any character except " ++ show excluded) "end of input"
+
 exactly :: String -> Parser String
 exactly = traverse char
 
--- Parser that applies one parser, then another, and combines the results
 andThen :: Parser a -> Parser a -> Parser [a]
 p1 `andThen` p2 = do
   a <- p1
   b <- p2
   return [a, b]
 
--- Parser that applies one parser, then another, and combines the results
 followedBy :: Parser a -> Parser b -> Parser (a, b)
 p1 `followedBy` p2 = do
   a <- p1
@@ -66,7 +69,6 @@ seqParsers (p : ps) = do
   rs <- seqParsers ps
   return $ r : rs
 
--- Parser that tries one parser, and if it fails, tries another
 (<|>) :: Parser a -> Parser a -> Parser a
 (Parser p1) <|> (Parser p2) = Parser $ \input ->
   case p1 input of

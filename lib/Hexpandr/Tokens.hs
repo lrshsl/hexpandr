@@ -12,8 +12,8 @@ data Token
   | TokString String
   deriving (Show, Eq)
 
-whitespace :: Parser String
-whitespace = many $ char ' '
+whitespace :: Parser ()
+whitespace = silent $ many $ char ' '
 
 alpha :: Parser Char
 alpha = force choice $ map char (['a' .. 'z'] ++ ['A' .. 'Z'])

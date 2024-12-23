@@ -38,13 +38,17 @@ runTests tests = do
       exitFailure
 
 main :: IO ()
-main = runTests
-  [ simpleTest "Multiple items" $
+main = do
+  print $ parse parseMapping "df name arg -> 'str'"
+  -- runTests [ simpleTest "Multiple items" $
 
-      parse (many1 alpha `sepBy` char ',') "item,item,item"
+  --     parse (many1 alpha `sepBy` char ',') "item,item,item"
 
-    == Ok ["item", "item", "item"] ""
-  ]
+  --   == Ok ["item", "item", "item"] ""]
+
+    -- , simpleTest "Parse mapping" $
+    --   parse parseMapping "df name arg1 -> 'str'"
+    --   == Ok (Mapping (AstIdent "name")) []
 
   -- ---------------------------------------
   -- --- Single characters
