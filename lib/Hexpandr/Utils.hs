@@ -1,4 +1,5 @@
 module Hexpandr.Utils where
 
-flatten :: [[a]] -> [a]
-flatten = concat
+flatten :: (Functor f) => f [[p]] -> f [p]
+flatten p = concat <$> p
+

@@ -13,7 +13,7 @@ data Token
   deriving (Show, Eq)
 
 whitespace :: Parser ()
-whitespace = silent $ many $ char ' '
+whitespace = silent . many1 . choice $ map char " \t"
 
 alpha :: Parser Char
 alpha = force choice $ map char (['a' .. 'z'] ++ ['A' .. 'Z'])
@@ -21,25 +21,18 @@ alpha = force choice $ map char (['a' .. 'z'] ++ ['A' .. 'Z'])
 digit :: Parser Char
 digit = force choice $ map char ['0' .. '9']
 
-ident :: Parser Token
-ident = do
-  x <- many1 alpha
-  return $ TokIdent x
+alphanum :: Parser Char
+alphanum = alpha <|> digit
 
-int :: Parser Token
+ident :: Parser [Char]
+ident = (alpha <|> char '_') `followedBy` many (alpha <|> digit <|> char '_')
+
+int :: Parser Int
 int = do
   x <- many1 digit
-  return . TokInt $ read x
+  return (read x :: Int)
 
-float :: Parser Token
+float :: Parser Double
 float = do
-  ((a, dot), b) <- many1 digit `followedBy` char '.' `followedBy` many digit
-
-  let combined = a ++ dot : b
-   in return . TokFloat $ (read combined :: Double)
-
-token :: Parser Token
-token = do
-  _ <- whitespace
-  ident <|> float <|> int
-
+  text <- many1 digit `followedBy` char '.' `followedByFlat` many digit
+  return (read text :: Double)

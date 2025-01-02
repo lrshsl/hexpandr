@@ -11,18 +11,20 @@ data TopLevel =
   Mapping AstIdent [Arg] String
   deriving (Show)
 
+keyword :: String -> Parser ()
+keyword s = silent $ optional whitespace >> exactly s
+
 parseMapping :: Parser TopLevel
 parseMapping = do
-  _ <- whitespace >> exactly "df"
-  n <- whitespace >> parseIdent
-  t <- whitespace >> parseArg
+  n <- keyword "df" >> whitespace >> parseIdent
+  a <- many1 (whitespace >> parseArg)
 
-  _ <- whitespace >> exactly "->"
+  _ <- keyword "->" >> whitespace
 
-  _ <- whitespace >> char '\''
-  s <- many $ anyCharBut "\'"
-  _ <- char '\''
-  return $ Mapping n [t] s
+  s <- silent (char '\'') >> many (anyCharBut "\'")
+  _ <- silent (char '\'')
+
+  return $ Mapping n a s
 
 data Arg =
   IdentArg AstIdent
@@ -36,12 +38,13 @@ parseArg =
 
 newtype AstIdent = AstIdent String
   deriving (Show)
+
+parseIdent :: Parser AstIdent
+parseIdent = AstIdent <$> ((alpha <|> char '_') `followedBy` many (alphanum <|> char '_'))
+
 newtype AstInt = AstInt Int
   deriving (Show)
 
-parseIdent :: Parser AstIdent
-parseIdent = AstIdent <$> many alpha
-
 parseInt :: Parser AstInt
-parseInt = fmap AstInt $ read <$> many digit
+parseInt = fmap AstInt $ read <$> many1 digit
 

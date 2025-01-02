@@ -6,8 +6,7 @@ module Hexpandr.PrimitiveParsers
     anyChar,
     anyCharBut,
     exactly,
-    andThen,
-    followedBy,
+    module Hexpandr.FollowedByParser,
     seqParsers,
     (<|>),
     choice,
@@ -20,8 +19,10 @@ module Hexpandr.PrimitiveParsers
   )
 where
 
+import Control.Monad qualified
 import Hexpandr.Parser
-import qualified Control.Monad
+import Hexpandr.FollowedByParser
+import Hexpandr.Utils
 
 eoi :: Parser ()
 eoi = Parser $ \case
@@ -50,18 +51,6 @@ anyCharBut excluded = Parser $ \case
 exactly :: String -> Parser String
 exactly = traverse char
 
-andThen :: Parser a -> Parser a -> Parser [a]
-p1 `andThen` p2 = do
-  a <- p1
-  b <- p2
-  return [a, b]
-
-followedBy :: Parser a -> Parser b -> Parser (a, b)
-p1 `followedBy` p2 = do
-  a <- p1
-  b <- p2
-  return (a, b)
-
 seqParsers :: [Parser a] -> Parser [a]
 seqParsers [] = pure []
 seqParsers (p : ps) = do
@@ -79,22 +68,19 @@ choice :: [Parser a] -> Parser a
 choice = foldr1 (<|>)
 
 optional :: Parser a -> Parser [a]
-optional p = fmap (:[]) p <|> pure []
+optional p = fmap (: []) p <|> pure []
 
 silent :: Parser p -> Parser ()
 silent = Control.Monad.void
 
 many :: Parser a -> Parser [a]
-many p = many1 p <|> pure []
+many p = flatten . optional $ p `followedBy` many p
 
 many1 :: Parser a -> Parser [a]
-many1 p = do
-  first <- p
-  rest <- many p
-  return (first : rest)
+many1 p = p `followedBy` many p
 
 sepBy :: Parser e -> Parser s -> Parser [e]
-e `sepBy` s = (++) <$> optional e <*> many (silent s >> e)
+e `sepBy` s = flatten $ optional e `followedBy` many (silent s >> e)
 
 sepBy1 :: Parser e -> Parser s -> Parser [e]
-e `sepBy1` s = (:) <$> e <*> e `sepBy` s
+e `sepBy1` s = e `followedBy` (e `sepBy` s)

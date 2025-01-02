@@ -58,6 +58,7 @@ library
     other-modules:
         Hexpandr.Parser,
         Hexpandr.PrimitiveParsers,
+        Hexpandr.FollowedByParser,
         Hexpandr.Tokens,
         Hexpandr.Ast,
 
