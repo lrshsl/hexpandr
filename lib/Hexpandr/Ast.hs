@@ -7,9 +7,10 @@ import Hexpandr.Tokens
 parseFile :: Parser [TopLevel]
 parseFile = many parseMapping
 
-data TopLevel =
-  Mapping AstIdent [Arg] String
-  deriving (Show)
+data TopLevel
+  = Mapping AstIdent [Arg] String
+  | Expr
+  deriving (Eq, Show)
 
 keyword :: String -> Parser ()
 keyword s = silent $ optional whitespace >> exactly s
@@ -21,15 +22,17 @@ parseMapping = do
 
   _ <- keyword "->" >> whitespace
 
-  s <- silent (char '\'') >> many (anyCharBut "\'")
-  _ <- silent (char '\'')
+  s <- strDelimiter >> many (anyCharBut "\'")
+  _ <- strDelimiter
 
   return $ Mapping n a s
+  where
+    strDelimiter = silent (char '\'')
 
 data Arg =
   IdentArg AstIdent
   | IntArg AstInt
-  deriving (Show)
+  deriving (Eq, Show)
 
 parseArg :: Parser Arg
 parseArg =
@@ -37,13 +40,13 @@ parseArg =
   <|> fmap IntArg parseInt
 
 newtype AstIdent = AstIdent String
-  deriving (Show)
+  deriving (Eq, Show)
 
 parseIdent :: Parser AstIdent
 parseIdent = AstIdent <$> ((alpha <|> char '_') `followedBy` many (alphanum <|> char '_'))
 
 newtype AstInt = AstInt Int
-  deriving (Show)
+  deriving (Eq, Show)
 
 parseInt :: Parser AstInt
 parseInt = fmap AstInt $ read <$> many1 digit
